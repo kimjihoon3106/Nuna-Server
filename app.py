@@ -1,20 +1,23 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from crawler import NamuWikiCrawler
 import os
 
 app = Flask(__name__)
 
-# CORS 설정 - 모든 origin 허용 (프론트엔드 분리 배포)
+# CORS 설정 - Vercel 프론트엔드 허용
 CORS(app, 
-     origins="*",
+     origins=["*"],
      methods=["GET", "POST", "OPTIONS"],
-     allow_headers=["Content-Type"],
-     supports_credentials=False)
+     allow_headers=["Content-Type", "Authorization"],
+     expose_headers=["Content-Type"],
+     supports_credentials=False,
+     max_age=3600)
 
 crawler = NamuWikiCrawler()
 
 @app.route('/')
+@cross_origin()
 def index():
     """API 상태 확인"""
     return jsonify({
@@ -26,9 +29,13 @@ def index():
         }
     })
 
-@app.route('/search', methods=['POST'])
+@app.route('/search', methods=['POST', 'OPTIONS'])
+@cross_origin()
 def search():
     """학교 검색 API"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     data = request.get_json()
     school_name = data.get('school_name', '').strip()
     
