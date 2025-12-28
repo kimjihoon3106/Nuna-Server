@@ -11,7 +11,18 @@ class NamuWikiCrawler:
         self.base_url = "https://namu.wiki"
         self.cache_dir = cache_dir
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'Referer': 'https://namu.wiki/'
         }
         
         # 캐시 디렉토리 생성
@@ -64,13 +75,21 @@ class NamuWikiCrawler:
             variations.append(full_name)
             variations.append(full_name.replace(' ', ''))
         
-        for variant in variations:
+        # 세션 생성
+        session = requests.Session()
+        session.headers.update(self.headers)
+        
+        for i, variant in enumerate(variations):
+            # 요청 사이에 딜레이 추가 (봇 감지 방지)
+            if i > 0:
+                time.sleep(1.5)
+            
             encoded_name = urllib.parse.quote(variant)
             url = f"{self.base_url}/w/{encoded_name}"
             
             try:
                 print(f"[시도] URL: {url}")
-                response = requests.get(url, headers=self.headers, timeout=10)
+                response = session.get(url, timeout=10, allow_redirects=True)
                 if response.status_code == 200:
                     print(f"[성공] 학교 페이지 로드: {variant}")
                     return response.text
@@ -78,9 +97,11 @@ class NamuWikiCrawler:
                     print(f"[404] 페이지 없음: {variant}")
                     continue
                 else:
-                    response.raise_for_status()
+                    print(f"[{response.status_code}] 응답 코드: {variant}")
+                    continue
             except requests.exceptions.RequestException as e:
                 print(f"[오류] 학교 페이지 요청 실패 ({variant}): {e}")
+                time.sleep(2)  # 오류 시 더 긴 대기
                 continue
         
         return None
