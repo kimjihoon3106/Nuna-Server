@@ -6,13 +6,11 @@ import os
 app = Flask(__name__)
 
 # CORS 설정 - 모든 origin 허용 (프론트엔드 분리 배포)
-CORS(app, resources={
-    r"/*": {
-        "origins": "*",  # 모든 도메인 허용
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
-    }
-})
+CORS(app, 
+     origins="*",
+     methods=["GET", "POST", "OPTIONS"],
+     allow_headers=["Content-Type"],
+     supports_credentials=False)
 
 crawler = NamuWikiCrawler()
 
@@ -58,5 +56,9 @@ if __name__ == '__main__':
     if not os.path.exists('cache'):
         os.makedirs('cache')
     
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    # Railway는 PORT 환경 변수 제공
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    
+    app.run(debug=debug, host='0.0.0.0', port=port)
 
