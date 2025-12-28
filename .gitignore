@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+
+# Flask
+instance/
+.webassets-cache
+
+# 캐시 (캐시 파일만 제외, 디렉토리는 유지)
+cache/*.json
+
+# 환경 변수
+.env
+.env.local
+
+# 프론트엔드 파일 (별도 레포지토리)
+templates/
+static/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Test
+.pytest_cache/
+.coverage
+htmlcov/
+
