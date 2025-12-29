@@ -90,6 +90,27 @@ import os
 api_base_url = os.environ.get('API_BASE_URL', 'http://localhost:5001')
 ```
 
+### 프록시 사용 (403 방지용)
+
+나무위키가 클라우드 호스팅 IP를 차단하는 경우가 있습니다. 이때는 프록시를 통해 요청을 우회할 수 있습니다.
+
+1. 프록시 URL을 준비 (예: `http://username:password@proxy.example.com:8000`)
+2. Cloud 배포 플랫폼에 환경 변수로 `PROXY_URL`을 추가
+3. `crawler.py`는 `PROXY_URL` 환경 변수를 읽어 자동으로 프록시를 사용합니다.
+
+예: Railway 환경 변수
+
+```
+PROXY_URL=http://username:password@proxy.example.com:8000
+```
+
+주의: 공용 프록시 사용은 보안/정책 문제를 유발할 수 있으니, 가능하면 신뢰할 수 있는 유료 스크래핑 API(예: ScraperAPI, ScrapingBee)를 사용하는 것을 권장합니다.
+
+### 스크래핑 API 대안 권장
+
+나무위키가 강하게 차단하는 경우, 자체 프록시 운영 대신 스크래핑 API를 사용하는 것이 가장 안전하고 안정적입니다. 비용이 들지만 차단/속도/회피 문제를 직접 관리할 필요가 없습니다.
+
+
 ## 체크리스트
 
 배포 전 확인사항:

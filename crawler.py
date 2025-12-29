@@ -24,6 +24,15 @@ class NamuWikiCrawler:
             'Cache-Control': 'max-age=0',
             'Referer': 'https://namu.wiki/'
         }
+        # 간단한 User-Agent 목록 (회피용)
+        self.user_agents = [
+            self.headers['User-Agent'],
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15'
+        ]
+        # 선택적 프록시 (환경 변수로 설정 가능)
+        self.proxy_url = os.environ.get('PROXY_URL')
         
         # 캐시 디렉토리 생성
         if not os.path.exists(cache_dir):
@@ -78,31 +87,47 @@ class NamuWikiCrawler:
         # 세션 생성
         session = requests.Session()
         session.headers.update(self.headers)
-        
+        if self.proxy_url:
+            session.proxies.update({'http': self.proxy_url, 'https': self.proxy_url})
+
+        # 각 variant에 대해 여러번 시도 (User-Agent 회전, 지수 백오프)
         for i, variant in enumerate(variations):
-            # 요청 사이에 딜레이 추가 (봇 감지 방지)
-            if i > 0:
-                time.sleep(1.5)
-            
             encoded_name = urllib.parse.quote(variant)
             url = f"{self.base_url}/w/{encoded_name}"
-            
-            try:
-                print(f"[시도] URL: {url}")
-                response = session.get(url, timeout=10, allow_redirects=True)
-                if response.status_code == 200:
-                    print(f"[성공] 학교 페이지 로드: {variant}")
-                    return response.text
-                elif response.status_code == 404:
-                    print(f"[404] 페이지 없음: {variant}")
+
+            # variant 간 기본 대기
+            if i > 0:
+                time.sleep(1.5)
+
+            max_attempts = 3
+            for attempt in range(1, max_attempts + 1):
+                # 시도할 때마다 User-Agent를 바꿔 본다
+                ua = self.user_agents[(attempt - 1) % len(self.user_agents)]
+                session.headers.update({'User-Agent': ua, 'Referer': self.headers.get('Referer')})
+
+                try:
+                    print(f"[시도] URL: {url} (variant={variant}, attempt={attempt}, UA={ua})")
+                    response = session.get(url, timeout=12, allow_redirects=True)
+
+                    if response.status_code == 200:
+                        print(f"[성공] 학교 페이지 로드: {variant}")
+                        return response.text
+                    elif response.status_code == 404:
+                        print(f"[404] 페이지 없음: {variant}")
+                        break  # 이 variant는 없음, 다음 variant로
+                    elif response.status_code == 403:
+                        print(f"[403] 응답 코드: {variant} (attempt {attempt})")
+                        # 지수 백오프
+                        backoff = 1.5 * (2 ** (attempt - 1))
+                        time.sleep(backoff)
+                        continue
+                    else:
+                        print(f"[{response.status_code}] 응답 코드: {variant}")
+                        break
+                except requests.exceptions.RequestException as e:
+                    print(f"[오류] 학교 페이지 요청 실패 ({variant}, attempt {attempt}): {e}")
+                    time.sleep(1.5 * attempt)
                     continue
-                else:
-                    print(f"[{response.status_code}] 응답 코드: {variant}")
-                    continue
-            except requests.exceptions.RequestException as e:
-                print(f"[오류] 학교 페이지 요청 실패 ({variant}): {e}")
-                time.sleep(2)  # 오류 시 더 긴 대기
-                continue
         
         return None
     
