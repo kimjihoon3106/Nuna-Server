@@ -97,17 +97,17 @@ class NamuWikiCrawler:
 
             # variant 간 기본 대기
             if i > 0:
-                time.sleep(1.5)
+                time.sleep(0.5)  # 1.5초 → 0.5초로 단축
 
-            max_attempts = 3
+            max_attempts = 2  # 3회 → 2회로 감소
             for attempt in range(1, max_attempts + 1):
                 # 시도할 때마다 User-Agent를 바꿔 본다
                 ua = self.user_agents[(attempt - 1) % len(self.user_agents)]
                 session.headers.update({'User-Agent': ua, 'Referer': self.headers.get('Referer')})
 
                 try:
-                    print(f"[시도] URL: {url} (variant={variant}, attempt={attempt}, UA={ua})")
-                    response = session.get(url, timeout=12, allow_redirects=True)
+                    print(f"[시도] URL: {url} (variant={variant}, attempt={attempt})")
+                    response = session.get(url, timeout=10, allow_redirects=True)
 
                     if response.status_code == 200:
                         print(f"[성공] 학교 페이지 로드: {variant}")
@@ -117,16 +117,18 @@ class NamuWikiCrawler:
                         break  # 이 variant는 없음, 다음 variant로
                     elif response.status_code == 403:
                         print(f"[403] 응답 코드: {variant} (attempt {attempt})")
-                        # 지수 백오프
-                        backoff = 1.5 * (2 ** (attempt - 1))
-                        time.sleep(backoff)
+                        # 지수 백오프 - 더 짧게
+                        if attempt < max_attempts:
+                            backoff = 0.5 * (2 ** (attempt - 1))  # 0.5초, 1초
+                            time.sleep(backoff)
                         continue
                     else:
                         print(f"[{response.status_code}] 응답 코드: {variant}")
                         break
                 except requests.exceptions.RequestException as e:
                     print(f"[오류] 학교 페이지 요청 실패 ({variant}, attempt {attempt}): {e}")
-                    time.sleep(1.5 * attempt)
+                    if attempt < max_attempts:
+                        time.sleep(0.5 * attempt)  # 1.5초 → 0.5초로 단축
                     continue
         
         return None
