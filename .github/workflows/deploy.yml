@@ -22,15 +22,16 @@ jobs:
           stage: main
           yaml: |
             name: nuna-server
-            app: flask@3.12
+            app: python@3.9
             options:
               env:
                 - name: FLASK_ENV
                   value: production
-              ports: 5001
-              start: python app.py
+              ports: "5001"
+              start: gunicorn -b 0.0.0.0:5001 app:app
               buildenv: []
             context:
               git:
                 url: git@github.com:${{ github.repository }}.git
                 ref: ${{ github.ref }}
+              preset: python-flask
